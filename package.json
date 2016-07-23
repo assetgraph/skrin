@@ -7,15 +7,21 @@
     "test": "test"
   },
   "scripts": {
-    "test": "mocha"
+    "lint": "eslint .",
+    "test": "mocha",
+    "travis": "npm test && npm run coverage && (<coverage/lcov.info coveralls || true)",
+    "coverage": "nyc --reporter=lcov --reporter=text --all -- mocha && echo google-chrome coverage/lcov-report/index.html",
+    "preversion": "npm test"
   },
   "author": "",
   "license": "BSD-3-Clause",
   "devDependencies": {
+    "coveralls": "2.11.11",
     "eslint": "3.1.1",
     "eslint-config-onelint": "1.1.0",
     "gettemporaryfilepath": "0.0.1",
     "mocha": "2.5.3",
+    "nyc": "7.0.0",
     "sinon": "1.17.4",
     "unexpected": "10.15.0",
     "unexpected-sinon": "10.2.1"
