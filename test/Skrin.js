@@ -35,6 +35,22 @@ describe('Skrin', function () {
         });
     });
 
+    it('should serve cache records from memory when they are assumed to be fresh', function () {
+        var spy = sinon.spy(skrin, '_tryLoadCacheRecordFromDisc');
+
+        return skrin.read('foobar')
+            .then(function (cacheRecord) {
+                expect(spy, 'was called once');
+            })
+            .delay(1000)
+            .then(function () {
+                return skrin.read('foobar');
+            })
+            .then(function (cacheRecord) {
+                expect(spy, 'was called once');
+            });
+    });
+
     it('should expose a method with read-but-write-if-it-is-not-there semantics', function () {
         return Promise.all([
             skrin.read('foobar').then(function (cacheRecord) {
