@@ -99,26 +99,45 @@ describe('Skrin', function () {
             expect(subject.getTime(), 'to be greater than', value.getTime());
         });
 
-        var mtime1;
-        return skrin.read('repopulate-on-update').then(function (cacheRecord) {
-            return expect(cacheRecord.metadata, 'to satisfy', {
-                key: 'repopulate-on-update',
-                minimumMtime: expect.it('to be a number')
+        this.timeout(5000);
+
+        var stat1;
+        return skrin.read('repopulate-on-update.txt')
+            .then(function (cacheRecord) {
+                return expect(cacheRecord.metadata, 'to satisfy', {
+                    key: 'repopulate-on-update.txt',
+                    minimumMtime: expect.it('to be a number')
+                });
+            })
+            .then(function () {
+                expect(skrin.populate, 'was called once');
+
+                expect(skrin._statCache[pathToFooTxt], 'to satisfy', {
+                    mtime: expect.it('to be a', 'date')
+                });
+
+                stat1 = skrin._statCache[pathToFooTxt];
+
+                return touchAsync(pathToFooTxt);
+            })
+            .delay(300)
+            .then(function () {
+                // Make sure that the watcher has kicked in:
+                expect(skrin._statCache[pathToFooTxt], 'not to be', stat1);
+
+                expect(skrin._statCache[pathToFooTxt], 'to satisfy', {
+                    mtime: expect.it('to be after', stat1.mtime)
+                });
+
+                // expect(skrin._statCache[pathToFooTxt].mtime, 'to be after', mtime1);
+                return skrin.read('repopulate-on-update.txt');
+            })
+            .then(function (cacheRecord) {
+                expect(cacheRecord.metadata, 'to satisfy', {
+                    key: 'repopulate-on-update.txt',
+                    minimumMtime: expect.it('to be a number')
+                });
+                expect(skrin.populate, 'was called twice');
             });
-        }).then(function () {
-            expect(skrin.populate, 'was called once');
-            mtime1 = skrin._statCache[pathToFooTxt].mtime;
-            return touchAsync(pathToFooTxt);
-        }).delay(100).then(function () {
-            // Make sure that the watcher has kicked in:
-            expect(skrin._statCache[pathToFooTxt].mtime, 'to be after', mtime1);
-            return skrin.read('repopulate-on-update');
-        }).then(function (cacheRecord) {
-            expect(cacheRecord.metadata, 'to satisfy', {
-                key: 'repopulate-on-update',
-                minimumMtime: expect.it('to be a number')
-            });
-            expect(skrin.populate, 'was called twice');
-        });
     });
 });
