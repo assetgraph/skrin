@@ -42,7 +42,6 @@ describe('Skrin', function () {
             .then(function (cacheRecord) {
                 expect(spy, 'was called once');
             })
-            .delay(1000)
             .then(function () {
                 return skrin.read('foobar');
             })
