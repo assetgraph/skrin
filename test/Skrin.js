@@ -38,12 +38,12 @@ describe('Skrin', function () {
     it('should serve cache records from memory when they are assumed to be fresh', function () {
         var spy = sinon.spy(skrin, '_tryLoadCacheRecordFromDisc');
 
-        return skrin.read('memcache')
+        return skrin.read('memcache.txt')
             .then(function (cacheRecord) {
                 expect(spy, 'was called once');
             })
             .then(function () {
-                return skrin.read('memcache');
+                return skrin.read('memcache.txt');
             })
             .then(function (cacheRecord) {
                 expect(spy, 'was called once');
@@ -52,42 +52,42 @@ describe('Skrin', function () {
 
     it('should expose a method with read-but-write-if-it-is-not-there semantics', function () {
         return Promise.all([
-            skrin.read('read-write-if-nonexist').then(function (cacheRecord) {
+            skrin.read('read-write-if-nonexist.txt').then(function (cacheRecord) {
                 expect(cacheRecord, 'to satisfy', {
                     metadata: {
                         compileTime: expect.it('to be less than', 100)
                     },
                     payloads: {
-                        transpiledOutput: 'the transpiled output of read-write-if-nonexist',
-                        sourceMap: 'the source map of read-write-if-nonexist'
+                        transpiledOutput: 'the transpiled output of read-write-if-nonexist.txt',
+                        sourceMap: 'the source map of read-write-if-nonexist.txt'
                     }
                 });
             }),
-            skrin.read('read-write-if-nonexist').then(function (cacheRecord) {
+            skrin.read('read-write-if-nonexist.txt').then(function (cacheRecord) {
                 expect(cacheRecord, 'to satisfy', {
                     metadata: {
                         compileTime: expect.it('to be less than', 100)
                     },
                     payloads: {
-                        transpiledOutput: 'the transpiled output of read-write-if-nonexist',
-                        sourceMap: 'the source map of read-write-if-nonexist'
+                        transpiledOutput: 'the transpiled output of read-write-if-nonexist.txt',
+                        sourceMap: 'the source map of read-write-if-nonexist.txt'
                     }
                 });
             })
         ]).then(function () {
             expect(skrin.populate, 'was called once');
-            return fs.readFileAsync(pathModule.resolve(skrin.cacheDir, skrin._keyToCachedFileName('read-write-if-nonexist')));
+            return fs.readFileAsync(pathModule.resolve(skrin.cacheDir, skrin._keyToCachedFileName('read-write-if-nonexist.txt')));
         }).then(function (contents) {
             var metadataStr = contents.toString().replace(/\n[\s\S]*$/, '');
             expect(JSON.parse(metadataStr), 'to satisfy', {
                 payloads: {
                     transpiledOutput: {
                         start: 0,
-                        end: 'the transpiled output of read-write-if-nonexist'.length
+                        end: 'the transpiled output of read-write-if-nonexist.txt'.length
                     },
                     sourceMap: {
-                        start: 'the transpiled output of read-write-if-nonexist'.length,
-                        end: 'the transpiled output of read-write-if-nonexist'.length + 'the source map of read-write-if-nonexist'.length
+                        start: 'the transpiled output of read-write-if-nonexist.txt'.length,
+                        end: 'the transpiled output of read-write-if-nonexist.txt'.length + 'the source map of read-write-if-nonexist.txt'.length
                     }
                 }
             });
