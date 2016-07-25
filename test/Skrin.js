@@ -35,44 +35,59 @@ describe('Skrin', function () {
         });
     });
 
+    it('should serve cache records from memory when they are assumed to be fresh', function () {
+        var spy = sinon.spy(skrin, '_tryLoadCacheRecordFromDisc');
+
+        return skrin.read('memcache.txt')
+            .then(function (cacheRecord) {
+                expect(spy, 'was called once');
+            })
+            .then(function () {
+                return skrin.read('memcache.txt');
+            })
+            .then(function (cacheRecord) {
+                expect(spy, 'was called once');
+            });
+    });
+
     it('should expose a method with read-but-write-if-it-is-not-there semantics', function () {
         return Promise.all([
-            skrin.read('foobar').then(function (cacheRecord) {
+            skrin.read('read-write-if-nonexist.txt').then(function (cacheRecord) {
                 expect(cacheRecord, 'to satisfy', {
                     metadata: {
                         compileTime: expect.it('to be less than', 100)
                     },
                     payloads: {
-                        transpiledOutput: 'the transpiled output of foobar',
-                        sourceMap: 'the source map of foobar'
+                        transpiledOutput: 'the transpiled output of read-write-if-nonexist.txt',
+                        sourceMap: 'the source map of read-write-if-nonexist.txt'
                     }
                 });
             }),
-            skrin.read('foobar').then(function (cacheRecord) {
+            skrin.read('read-write-if-nonexist.txt').then(function (cacheRecord) {
                 expect(cacheRecord, 'to satisfy', {
                     metadata: {
                         compileTime: expect.it('to be less than', 100)
                     },
                     payloads: {
-                        transpiledOutput: 'the transpiled output of foobar',
-                        sourceMap: 'the source map of foobar'
+                        transpiledOutput: 'the transpiled output of read-write-if-nonexist.txt',
+                        sourceMap: 'the source map of read-write-if-nonexist.txt'
                     }
                 });
             })
         ]).then(function () {
             expect(skrin.populate, 'was called once');
-            return fs.readFileAsync(pathModule.resolve(skrin.cacheDir, skrin._keyToCachedFileName('foobar')));
+            return fs.readFileAsync(pathModule.resolve(skrin.cacheDir, skrin._keyToCachedFileName('read-write-if-nonexist.txt')));
         }).then(function (contents) {
             var metadataStr = contents.toString().replace(/\n[\s\S]*$/, '');
             expect(JSON.parse(metadataStr), 'to satisfy', {
                 payloads: {
                     transpiledOutput: {
                         start: 0,
-                        end: 'the transpiled output of foobar'.length
+                        end: 'the transpiled output of read-write-if-nonexist.txt'.length
                     },
                     sourceMap: {
-                        start: 'the transpiled output of foobar'.length,
-                        end: 'the transpiled output of foobar'.length + 'the source map of foobar'.length
+                        start: 'the transpiled output of read-write-if-nonexist.txt'.length,
+                        end: 'the transpiled output of read-write-if-nonexist.txt'.length + 'the source map of read-write-if-nonexist.txt'.length
                     }
                 }
             });
@@ -84,26 +99,45 @@ describe('Skrin', function () {
             expect(subject.getTime(), 'to be greater than', value.getTime());
         });
 
-        var mtime1;
-        return skrin.read('foobar').then(function (cacheRecord) {
-            return expect(cacheRecord.metadata, 'to satisfy', {
-                key: 'foobar',
-                minimumMtime: expect.it('to be a number')
+        this.timeout(5000);
+
+        var stat1;
+        return skrin.read('repopulate-on-update.txt')
+            .then(function (cacheRecord) {
+                return expect(cacheRecord.metadata, 'to satisfy', {
+                    key: 'repopulate-on-update.txt',
+                    minimumMtime: expect.it('to be a number')
+                });
+            })
+            .then(function () {
+                expect(skrin.populate, 'was called once');
+
+                expect(skrin._statCache[pathToFooTxt], 'to satisfy', {
+                    mtime: expect.it('to be a', 'date')
+                });
+
+                stat1 = skrin._statCache[pathToFooTxt];
+
+                return touchAsync(pathToFooTxt);
+            })
+            .delay(300)
+            .then(function () {
+                // Make sure that the watcher has kicked in:
+                expect(skrin._statCache[pathToFooTxt], 'not to be', stat1);
+
+                expect(skrin._statCache[pathToFooTxt], 'to satisfy', {
+                    mtime: expect.it('to be after', stat1.mtime)
+                });
+
+                // expect(skrin._statCache[pathToFooTxt].mtime, 'to be after', mtime1);
+                return skrin.read('repopulate-on-update.txt');
+            })
+            .then(function (cacheRecord) {
+                expect(cacheRecord.metadata, 'to satisfy', {
+                    key: 'repopulate-on-update.txt',
+                    minimumMtime: expect.it('to be a number')
+                });
+                expect(skrin.populate, 'was called twice');
             });
-        }).then(function () {
-            expect(skrin.populate, 'was called once');
-            mtime1 = skrin._statCache[pathToFooTxt].mtime;
-            return touchAsync(pathToFooTxt);
-        }).delay(100).then(function () {
-            // Make sure that the watcher has kicked in:
-            expect(skrin._statCache[pathToFooTxt].mtime, 'to be after', mtime1);
-            return skrin.read('foobar');
-        }).then(function (cacheRecord) {
-            expect(cacheRecord.metadata, 'to satisfy', {
-                key: 'foobar',
-                minimumMtime: expect.it('to be a number')
-            });
-            expect(skrin.populate, 'was called twice');
-        });
     });
 });
