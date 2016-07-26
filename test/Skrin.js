@@ -58,6 +58,12 @@ describe('Skrin', function () {
                 expect(spy, 'was called once');
             })
             .then(function () {
+                expect(skrin.memoryCache, 'to satisfy', {
+                    'memcache.txt': {
+                        metadata: { key: 'memcache.txt' }
+                    }
+                });
+
                 delete skrin.memoryCache['memcache.txt'];
 
                 expect(skrin.memoryCache, 'to be empty');
