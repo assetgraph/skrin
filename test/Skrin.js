@@ -35,6 +35,11 @@ describe('Skrin', function () {
         });
     });
 
+    afterEach(function () {
+        return skrin.purge()
+            .then(skrin.destruct.bind(skrin));
+    });
+
     it('should serve cache records from memory when they are assumed to be fresh', function () {
         var spy = sinon.spy(skrin, '_tryLoadCacheRecordFromDisc');
 
