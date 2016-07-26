@@ -50,6 +50,31 @@ describe('Skrin', function () {
             });
     });
 
+    it('should serve cache records from disk when they are assumed to be fresh', function () {
+        var spy = sinon.spy(skrin, '_tryLoadCacheRecordFromDisc');
+
+        return skrin.read('memcache.txt')
+            .then(function (cacheRecord) {
+                expect(spy, 'was called once');
+            })
+            .then(function () {
+                delete skrin.memoryCache['memcache.txt'];
+
+                expect(skrin.memoryCache, 'to be empty');
+
+                return skrin.read('memcache.txt');
+            })
+            .then(function (cacheRecord) {
+                expect(spy, 'was called twice');
+
+                expect(skrin.memoryCache, 'to satisfy', {
+                    'memcache.txt': {
+                        metadata: { key: 'memcache.txt' }
+                    }
+                });
+            });
+    });
+
     it('should expose a method with read-but-write-if-it-is-not-there semantics', function () {
         return Promise.all([
             skrin.read('read-write-if-nonexist.txt').then(function (cacheRecord) {
