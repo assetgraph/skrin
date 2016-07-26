@@ -1,17 +1,13 @@
 var Skrin = require('../lib/Skrin');
 var pathModule = require('path');
 var Promise = require('bluebird');
-var fs = Promise.promisifyAll(require('fs'));
 var sinon = require('sinon');
 var expect = require('unexpected').clone().use(require('unexpected-sinon'));
 var getTemporaryFilePath = require('gettemporaryfilepath');
 
-function touchAsync(path) {
-    var now = new Date();
-    return fs.utimesAsync(path, now, now);
-}
-
 function getSkrinInstance() {
+    var pathToFooTxt = pathModule.resolve(__dirname, '..', 'testdata', 'sourceDir', 'foo.txt');
+
     return new Skrin({
         cacheDir: getTemporaryFilePath(),
         populate: sinon.spy(function (key) {
